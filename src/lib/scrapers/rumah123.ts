@@ -5,8 +5,6 @@ import type { Listing } from '@/types/listing';
 export async function scrapeRumah123(): Promise<Listing[]> {
   try {
     const listings: Listing[] = [];
-
-    // Recherche pour "studio bali" et "villa lombok"
     const searchQueries = ['studio bali', 'villa lombok', 't2 bali'];
 
     for (const query of searchQueries) {
@@ -22,62 +20,90 @@ export async function scrapeRumah123(): Promise<Listing[]> {
 
         const $ = cheerio.load(response.data);
 
-        // Sélecteur pour les cartes de propriété (peut varier)
-        $('.ceWdAk, .listing-card, [data-testid="card"]').slice(0, 5).each((idx, el) => {
-          try {
-            const title = $(el).find('a, h3').text().trim().slice(0, 100);
-            const priceText = $(el).find('[data-testid="price"], .price').text().trim();
-            const locationText = $(el).find('[data-testid="location"], .location').text().trim();
-            const linkEl = $(el).find('a[href*="/properti/"]').attr('href');
-            const imageUrl = $(el).find('img').attr('src') || 'https://images.unsplash.com/photo-1570129477492-45a003537e1f?w=500&h=400';
+        // Essayer plusieurs sélecteurs car la structure peut varier
+        const selectors = ['.ceWdAk', '.listing-card', '[data-testid="card"]', 'article'];
 
-            if (!title || !priceText) return;
+        for (const selector of selectors) {
+          if (listings.length >= 15) break; // Limiter à 15 listings par requête
 
-            // Parser le prix (format: "Rp 5.000.000.000" ou "IDR 5B")
-            let priceEur = 50000; // Default fallback
-            if (priceText.includes('M') || priceText.includes('Miliar')) {
-              const num = parseFloat(priceText.match(/[\d.]+/)?.[0] || '0');
-              priceEur = Math.round(num * 1000000 / 16000); // Conversion IDR to EUR (rough)
+          $(selector).slice(0, 10).each((idx, el) => {
+            try {
+              const $el = $(el);
+              const titleText = $el.find('h3, a, .title').first().text().trim().slice(0, 100);
+              const priceText = $el.find('[data-testid="price"], .price').text().trim();
+              const locationText = $el.find('[data-testid="location"], .location').text().trim();
+
+              if (!titleText || !priceText) return;
+
+              // Chercher le lien de manière robuste
+              let linkEl = $el.find('a[href*="/properti/"]').first().attr('href');
+              if (!linkEl) {
+                linkEl = $el.find('a[href*="/jual/"]').first().attr('href');
+              }
+              if (!linkEl) {
+                linkEl = $el.find('a[href^="/"]').first().attr('href');
+              }
+
+              // Construire l'URL source
+              let sourceUrl = url;
+              if (linkEl) {
+                sourceUrl = linkEl.startsWith('http') ? linkEl : `https://www.rumah123.com${linkEl}`;
+              }
+
+              // Parser le prix (IDR à EUR)
+              let priceEur = 50000;
+              if (priceText.includes('M') || priceText.includes('Miliar')) {
+                const num = parseFloat(priceText.match(/[\d.]+/)?.[0] || '0');
+                priceEur = Math.round((num * 1000000) / 16000);
+              }
+
+              const location = locationText.split(',')[0]?.trim() || 'Bali';
+              const locationMacro = titleText.toLowerCase().includes('lombok') || location.includes('Lombok') ? 'Lombok' : 'Bali';
+
+              const listing: Listing = {
+                id: `rumah123-${Date.now()}-${Math.random()}`,
+                title: titleText,
+                location_macro: locationMacro,
+                location_micro: location as any,
+                price_amount: priceEur,
+                price_currency: 'EUR',
+                price_bucket:
+                  priceEur < 50000 ? '<50k' : priceEur < 80000 ? '50-80k' : priceEur < 120000 ? '80-120k' : '120k+',
+                property_type: titleText.includes('Studio')
+                  ? 'Studio'
+                  : titleText.includes('T3')
+                    ? 'T3'
+                    : titleText.includes('T2')
+                      ? 'T2'
+                      : titleText.includes('Villa')
+                        ? 'Villa'
+                        : 'T1',
+                developer_name: 'Rumah123 User',
+                source_platform: 'Rumah123',
+                source_url: sourceUrl,
+                image_url: $el.find('img').first().attr('src') || 'https://images.unsplash.com/photo-1570129477492-45a003537e1f?w=500&h=400',
+                posted_at: new Date(),
+                scraped_at: new Date(),
+                legal_structure_claim: 'Inconnu',
+                trust_score: linkEl ? 75 : 60,
+                completeness_score: linkEl ? 80 : 55,
+                status: 'active',
+              };
+
+              listings.push(listing);
+            } catch (e) {
+              // Ignore individual listing errors
             }
-
-            const location = locationText.split(',')[0]?.trim() || 'Bali';
-            const isBali = title.toLowerCase().includes('bali') || location.includes('Bali');
-            const locationMacro = isBali ? 'Bali' : 'Lombok';
-
-            const listing: Listing = {
-              id: `rumah123-${idx}-${Date.now()}`,
-              title,
-              location_macro: locationMacro,
-              location_micro: location as any,
-              price_amount: priceEur,
-              price_currency: 'EUR',
-              price_bucket: priceEur < 50000 ? '<50k' : priceEur < 80000 ? '50-80k' : priceEur < 120000 ? '80-120k' : '120k+',
-              property_type: title.includes('Studio') ? 'Studio' : title.includes('T3') ? 'T3' : title.includes('T2') ? 'T2' : title.includes('Villa') ? 'Villa' : 'T1',
-              developer_name: 'Rumah123 User',
-              source_platform: 'Rumah123',
-              source_url: linkEl ? `https://www.rumah123.com${linkEl}` : url,
-              image_url: imageUrl,
-              posted_at: new Date(),
-              scraped_at: new Date(),
-              legal_structure_claim: 'Inconnu',
-              trust_score: 65,
-              completeness_score: 60,
-              status: 'active',
-            };
-
-            listings.push(listing);
-          } catch (e) {
-            // Ignore parsing errors for individual listings
-          }
-        });
+          });
+        }
       } catch (e) {
-        console.error(`Error scraping Rumah123 for "${query}":`, e);
+        console.error(`[Rumah123] Query "${query}" error:`, e instanceof Error ? e.message : e);
       }
     }
 
     return listings;
   } catch (error) {
-    console.error('Rumah123 scraper error:', error);
+    console.error('[Rumah123] Global error:', error);
     return [];
   }
 }

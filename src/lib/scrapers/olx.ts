@@ -52,7 +52,7 @@ export async function scrapeOLX(): Promise<Listing[]> {
               price_amount: priceEur,
               price_currency: 'EUR',
               price_bucket: priceEur < 50000 ? '<50k' : priceEur < 80000 ? '50-80k' : priceEur < 120000 ? '80-120k' : '120k+',
-              property_type: 'Autre',
+              property_type: 'T1',
               developer_name: 'OLX User (Privé)',
               source_platform: 'OLX',
               source_url: linkEl ? (linkEl.startsWith('http') ? linkEl : `https://www.olx.co.id${linkEl}`) : url,

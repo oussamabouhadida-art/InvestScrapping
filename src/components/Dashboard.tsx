@@ -13,7 +13,7 @@ import { ListingDetail } from './ListingDetail';
 
 export function Dashboard() {
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
-  const [selectedListing, setSelectedListing] = useState(null);
+  const [selectedListing, setSelectedListing] = useState<any>(null);
   const { listings, loading } = useListings();
   const { filters, setFilters, sort, setSort, filtered } = useListingFilters(listings);
 

@@ -52,7 +52,7 @@ export async function scrapeRumah123(): Promise<Listing[]> {
               price_amount: priceEur,
               price_currency: 'EUR',
               price_bucket: priceEur < 50000 ? '<50k' : priceEur < 80000 ? '50-80k' : priceEur < 120000 ? '80-120k' : '120k+',
-              property_type: title.includes('Studio') ? 'Studio' : title.includes('T3') ? 'T3' : title.includes('T2') ? 'T2' : title.includes('Villa') ? 'Villa' : 'Autre',
+              property_type: title.includes('Studio') ? 'Studio' : title.includes('T3') ? 'T3' : title.includes('T2') ? 'T2' : title.includes('Villa') ? 'Villa' : 'T1',
               developer_name: 'Rumah123 User',
               source_platform: 'Rumah123',
               source_url: linkEl ? `https://www.rumah123.com${linkEl}` : url,

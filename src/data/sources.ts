@@ -21,7 +21,7 @@ export interface ScrapingSource {
   extractionStrategy: string;
   cssSelectors?: Record<string, string>;
   apiEndpoint?: string;
-  status: 'not-started' | 'in-progress' | 'working' | 'blocked' | 'deprecated';
+  status: 'not-started' | 'in-progress' | 'working' | 'blocked' | 'deprecated' | 'manual-only';
 }
 
 export const scrapingSources: ScrapingSource[] = [

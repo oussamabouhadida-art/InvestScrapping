@@ -27,7 +27,13 @@ export function useListings() {
         }
 
         const data = await response.json();
-        setListings(data.listings || mockListings);
+        // Convert date strings back to Date objects
+        const listingsWithDates = (data.listings || mockListings).map((listing: any) => ({
+          ...listing,
+          posted_at: new Date(listing.posted_at),
+          scraped_at: new Date(listing.scraped_at),
+        }));
+        setListings(listingsWithDates);
       } catch (err) {
         console.error('Erreur lors du chargement des listings:', err);
         setError('Erreur lors du chargement des listings');
